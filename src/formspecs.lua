@@ -45,25 +45,22 @@ function inventory_admin.get_player_inventory_formspec(target_player_name, admin
     else
         -- minetest_game formspec
         local formspec = {
-            "size[8,10]", -- Width and Height of the formspec
-            "label[0.5,0.0;", minetest.formspec_escape(target_player_name .. "'s Inventory"), "]", -- Title label for the singleplayer's inventory
+            "size[8,10]",  -- Width of 8 slots, and enough height to accommodate all slots and labels
             
-            -- Singleplayer's hotbar at the top, with index starting at 1
-            "list[detached:" .. target_player_name .. "_inventory;main;0,0.5;8,1;0]",
+            -- Title for the target player's inventory
+            "label[0.5,0;", minetest.formspec_escape(target_player_name .. "'s Inventory"), "]",
             
-            -- Empty row to visually separate the hotbar from the main inventory
+            -- Singleplayer's complete inventory, including the hotbar in one block
+            "list[detached:" .. target_player_name .. "_inventory;main;0,0.5;8,4;]",  -- 8 slots per row, 4 rows in total
             
-            -- The singleplayer's main inventory
-            "list[detached:" .. target_player_name .. "_inventory;main;0,2;8,3;9]", -- Starting index is 9 assuming the hotbar is 8 slots and the first row in the main inventory starts after the hotbar
+            -- Title for the admin's inventory
+            "label[0.5,5.5;Your Inventory]",
             
-            -- Title label for the admin's inventory
-            "label[0.5,5;Your Inventory]", -- Adjust the Y position to 5
+            -- Admin's main inventory excluding the hotbar
+            "list[current_player;main;0,6;8,3;8]",  -- 3 rows of 8 slots each, starting after the hotbar
             
-            -- The admin's main inventory
-            "list[current_player;main;0,5.5;8,3;9]", -- Starting index is 9 to skip the admin's hotbar
-            
-            -- The admin's hotbar, visually separated
-            "list[current_player;main;0,9;8,1;0]", -- Ensure all slots are included
+            -- Admin's hotbar visually separated
+            "list[current_player;main;0,9.5;8,1;0]",  -- The hotbar with 8 slots
             
             -- Listrings for item movement between the inventories
             "listring[detached:" .. target_player_name .. "_inventory;main]",
@@ -71,5 +68,14 @@ function inventory_admin.get_player_inventory_formspec(target_player_name, admin
         }
         
         return table.concat(formspec)
+        
+        
+        
+        
+        
+        
+        
+        
+        
     end
 end

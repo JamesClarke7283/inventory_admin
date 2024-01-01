@@ -18,8 +18,13 @@ function inventory_admin.setup_detached_inventory(target_player_name)
         })
         
         -- Set the size of the inventory (e.g., main and hotbar are typically 9 slots each)
-        inventory_admin.detached_inventories[target_player_name]:set_size("main", 36) -- Adjust size accordingly
-        inventory_admin.detached_inventories[target_player_name]:set_size("hotbar", 9) -- Adjust size accordingly
+        if inventory_admin.utils.is_mineclone2() then
+            inventory_admin.detached_inventories[target_player_name]:set_size("main", 36) -- Adjust size accordingly
+            inventory_admin.detached_inventories[target_player_name]:set_size("hotbar", 9) -- Adjust size accordingly
+        else
+            inventory_admin.detached_inventories[target_player_name]:set_size("main", 32) -- Adjust size accordingly
+            inventory_admin.detached_inventories[target_player_name]:set_size("hotbar", 8) -- Adjust size accordingly
+        end
     end
 
     -- Fill the detached inventory with the player's inventory items
