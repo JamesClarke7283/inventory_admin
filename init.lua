@@ -2,6 +2,7 @@ local modpath = minetest.get_modpath("inventory_admin")
 local srcpath = modpath .. "/src/"
 inventory_admin = {}
 
+dofile(srcpath .. "utils.lua")
 dofile(srcpath .. "formspecs.lua")
 dofile(srcpath .. "sync.lua")
 dofile(srcpath .. "command.lua")
