@@ -1,0 +1,175 @@
+The following are the relevant source code files:
+
+// /home/impulse/Projects/Lua/minetest_mods/inventory_admin/src/formspecs.lua
+function inventory_admin.get_player_inventory_formspec(admin_name, target_player_name)
+    -- Make sure that a detached inventory for the target player exists
+    inventory_admin.setup_detached_inventory(target_player_name)
+
+    local formspec = {
+        "formspec_version[4]",
+        "size[11.75,13]",  -- Adjust the height to accommodate the spacing
+
+        -- Title for the target player's inventory
+        "label[0.375,0.375;", minetest.formspec_escape(target_player_name .. "'s Inventory"), "]",
+
+        -- Slot backgrounds for the target player's main inventory excluding the hotbar
+        mcl_formspec.get_itemslot_bg_v4(0.375, 1, 9, 3),
+
+        -- Slot list for the target player's main inventory excluding the hotbar
+        "list[detached:" .. target_player_name .. "_inventory;main;0.375,1;9,3;9]",
+
+        -- Slot background for the target player's hotbar, placed at the bottom
+        mcl_formspec.get_itemslot_bg_v4(0.375, 5, 9, 1),
+
+        -- Slot list for the target player's hotbar
+        "list[detached:" .. target_player_name .. "_inventory;main;0.375,5;9,1;0]",
+
+        -- Title for the admin's inventory, moved further down to create space
+        "label[0.375,6.5;Your Inventory]",
+
+        -- Slot backgrounds for the admin player's main inventory excluding the hotbar
+        mcl_formspec.get_itemslot_bg_v4(0.375, 7, 9, 3),
+
+        -- Slot list for the admin player's main inventory excluding the hotbar
+        "list[current_player;main;0.375,7;9,3;9]",
+
+        -- Slot background for the admin player's hotbar, placed further down with spacing similar to the singleplayer's hotbar
+        mcl_formspec.get_itemslot_bg_v4(0.375, 11, 9, 1),
+
+        -- Slot list for the admin player's hotbar, with adjusted Y-coordinate for correct spacing
+        "list[current_player;main;0.375,11;9,1;0]",
+
+        -- Listrings to allow moving items between the target's and admin's inventories
+        "listring[detached:" .. target_player_name .. "_inventory;main]",
+        "listring[current_player;main]",
+    }
+
+    return table.concat(formspec)
+end
+
+
+// /home/impulse/Projects/Lua/minetest_mods/inventory_admin/src/sync.lua
+function inventory_admin.setup_detached_inventory(target_player_name)
+    -- Create a detached inventory if it does not exist
+    if not inventory_admin.detached_inventories[target_player_name] then
+        inventory_admin.detached_inventories[target_player_name] = minetest.create_detached_inventory(target_player_name .. "_inventory", {
+            -- Define the callback functions for inventory actions
+            on_put = function(inv, listname, index, stack, player)
+                -- Sync the changes from the detached inventory to the player's inventory when items are put
+                inventory_admin.sync_inventory_to_player(target_player_name, listname, index, stack)
+            end,
+            on_take = function(inv, listname, index, stack, player)
+                -- Sync the changes from the detached inventory to the player's inventory when items are taken
+                inventory_admin.sync_inventory_to_player(target_player_name, listname, index, nil)
+            end,
+            on_move = function(inv, from_list, from_index, to_list, to_index, count, player)
+                -- Sync the entire inventory when items are moved within the detached inventory
+                inventory_admin.sync_inventory_to_player(target_player_name)
+            end,
+        })
+        
+        -- Set the size of the inventory (e.g., main and hotbar are typically 9 slots each)
+        inventory_admin.detached_inventories[target_player_name]:set_size("main", 36) -- Adjust size accordingly
+        inventory_admin.detached_inventories[target_player_name]:set_size("hotbar", 9) -- Adjust size accordingly
+    end
+
+    -- Fill the detached inventory with the player's inventory items
+    inventory_admin.sync_player_to_detached_inventory(target_player_name)
+end
+
+function inventory_admin.sync_player_to_detached_inventory(target_player_name)
+    local player = minetest.get_player_by_name(target_player_name)
+    if not player then
+        minetest.log("error", "Player not found: " .. target_player_name)
+        return
+    end
+
+    local player_inv = player:get_inventory()
+    local detached_inv = inventory_admin.detached_inventories[target_player_name]
+
+    -- Check if the detached inventory has been set up
+    if not detached_inv then
+        minetest.log("error", "Detached inventory not found for player: " .. target_player_name)
+        return
+    end
+
+    -- Copy the player's inventory into the detached inventory, including the hotbar
+    for i = 1, player_inv:get_size("main") do
+        detached_inv:set_stack("main", i, player_inv:get_stack("main", i))
+    end
+end
+
+
+
+
+function inventory_admin.sync_inventory_to_player(target_player_name, listname, index, stack)
+    local player = minetest.get_player_by_name(target_player_name)
+    if not player then
+        minetest.log("error", "Player not found: " .. target_player_name)
+        return
+    end
+
+    local player_inv = player:get_inventory()
+    local detached_inv = inventory_admin.detached_inventories[target_player_name]
+
+    -- If specific listname and index are provided, only sync that particular slot
+    if listname and index then
+        if stack then
+            -- The stack is provided, so we update the slot with the new stack
+            player_inv:set_stack(listname, index, stack)
+        else
+            -- If stack is nil, it means an item was taken out, so we set the slot to be empty
+            player_inv:set_stack(listname, index, ItemStack(nil))
+        end
+    else
+        -- Sync the entire inventory, which includes the hotbar since it's part of 'main'
+        for i = 1, detached_inv:get_size("main") do
+            player_inv:set_stack("main", i, detached_inv:get_stack("main", i))
+        end
+    end
+end
+
+
+
+
+
+// /home/impulse/Projects/Lua/minetest_mods/inventory_admin/src/command.lua
+-- In your mod's global scope, register the detached inventories table
+inventory_admin.detached_inventories = {}
+
+-- command.lua
+function inventory_admin.command_inventory(name, param)
+    local player = minetest.get_player_by_name(name)
+    if not player then
+        return false, "You need to be online to use this command."
+    end
+
+    local target_player_name = param:trim()
+    if target_player_name == "" then
+        return false, "Please specify a player name."
+    end
+
+    local target_player = minetest.get_player_by_name(target_player_name)
+    if not target_player then
+        return false, "Target player not found."
+    end
+
+    -- Set up the detached inventory and sync the player's current inventory to it
+    inventory_admin.setup_detached_inventory(target_player_name)
+    inventory_admin.sync_player_to_detached_inventory(target_player_name)  -- Sync the player inventory to the detached inventory
+
+    -- Show the formspec to the player who issued the command
+    minetest.show_formspec(name, "inventory_admin:player_inventory", 
+        inventory_admin.get_player_inventory_formspec(name, target_player_name))
+
+    return true, "Showing inventory of " .. target_player_name
+end
+
+
+
+The following are the instructions for the project:
+
+// /home/impulse/Projects/Lua/minetest_mods/inventory_admin/README.md
+# Inventory Admin
+
+
