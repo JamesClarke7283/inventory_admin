@@ -25,47 +25,31 @@ minetest.register_on_joinplayer(function(player)
     inventory_admin.setup_detached_inventory(player:get_player_name())
 end)
 
--- Override the player inventory callbacks
-for item_name, def in pairs(minetest.registered_items) do
-    -- Store the original functions if they are defined
-    local original_on_metadata_inventory_move = def.on_metadata_inventory_move
-    local original_on_metadata_inventory_put = def.on_metadata_inventory_put
-    local original_on_metadata_inventory_take = def.on_metadata_inventory_take
-    
-    -- Override the functions
-    minetest.override_item(item_name, {
-        on_metadata_inventory_move = function(pos, from_list, from_index, to_list, to_index, count, player)
-            local result = nil
-            minetest.log("action", "on_metadata_inventory_move: " .. item_name)
-            -- Call the original function if it exists
-            if original_on_metadata_inventory_move then
-                result = original_on_metadata_inventory_move(pos, from_list, from_index, to_list, to_index, count, player)
-            end
-            -- Sync the inventory after the move action
-            inventory_admin.sync_player_to_detached_inventory(player:get_player_name())
-            return result
-        end,
-        on_metadata_inventory_put = function(pos, listname, index, stack, player)
-            local result = nil
-            minetest.log("action", "on_metadata_inventory_put: " .. item_name)
-            -- Call the original function if it exists
-            if original_on_metadata_inventory_put then
-                result = original_on_metadata_inventory_put(pos, listname, index, stack, player)
-            end
-            -- Sync the inventory after the put action
-            inventory_admin.sync_player_to_detached_inventory(player:get_player_name())
-            return result
-        end,
-        on_metadata_inventory_take = function(pos, listname, index, stack, player)
-            local result = nil
-            minetest.log("action", "on_metadata_inventory_take: " .. item_name)
-            -- Call the original function if it exists
-            if original_on_metadata_inventory_take then
-                result = original_on_metadata_inventory_take(pos, listname, index, stack, player)
-            end
-            -- Sync the inventory after the take action
-            inventory_admin.sync_player_to_detached_inventory(player:get_player_name())
-            return result
-        end,
-    })
+-- Sync function that checks for changes in the player's inventory
+-- and updates the detached inventory accordingly.
+local function sync_inventories()
+    for _, player in ipairs(minetest.get_connected_players()) do
+        local player_name = player:get_player_name()
+        minetest.log("action", "Syncing inventory of player: " .. player_name)
+        inventory_admin.sync_player_to_detached_inventory(player_name)
+    end
 end
+
+-- Register a globalstep to periodically check for inventory changes.
+local timer = 0
+
+-- Register a globalstep to periodically check for inventory changes.
+minetest.register_globalstep(function(dtime)
+    -- Interval in seconds to update the inventories, e.g., every 1 second.
+    local interval = 1
+
+    -- Accumulate elapsed time
+    timer = timer + dtime
+    if timer >= interval then
+        -- Sync inventories
+        sync_inventories()
+
+        -- Reset the timer after syncing
+        timer = 0
+    end
+end)
