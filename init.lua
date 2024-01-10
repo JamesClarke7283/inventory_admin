@@ -31,7 +31,7 @@ end)
 local function sync_inventories()
     for _, player in ipairs(minetest.get_connected_players()) do
         local player_name = player:get_player_name()
-        minetest.log("action", "Syncing inventory of player: " .. player_name)
+        --minetest.log("action", "Syncing inventory of player: " .. player_name)
         inventory_admin.sync_player_to_detached_inventory(player_name)
     end
 end
