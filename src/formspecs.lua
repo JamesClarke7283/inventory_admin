@@ -1,3 +1,8 @@
+local S = minetest.get_translator("mcl_chests")
+local F = minetest.formspec_escape
+local C = minetest.colorize
+
+
 -- Get the formspec for the inventory based on the game
 function inventory_admin.get_player_inventory_formspec(target_player_name, admin_name)
     if inventory_admin.utils.is_mineclone2() then
@@ -69,4 +74,22 @@ function inventory_admin.get_player_inventory_formspec(target_player_name, admin
 
         return table.concat(formspec)
     end
+end
+
+function inventory_admin.get_enderchest_inventory_formspec(target_player_name)
+    local formspec_ender_chest = {
+        "formspec_version[4]",
+        "size[11.75,10.425]",
+        "label[0.375,0.375;", F(C(mcl_formspec.label_color, target_player_name.."'s "..S("Ender Chest"))) .. "]",
+        mcl_formspec.get_itemslot_bg_v4(0.375, 0.75, 9, 3),
+        "list[player:" .. target_player_name .. ";enderchest;0.375,0.75;9,3;]",  -- Access the target player's enderchest
+        "label[0.375,4.7;", F(C(mcl_formspec.label_color, S("Inventory"))) .. "]",
+        mcl_formspec.get_itemslot_bg_v4(0.375, 5.1, 9, 3),
+        "list[current_player;main;0.375,5.1;9,3;9]",
+        mcl_formspec.get_itemslot_bg_v4(0.375, 9.05, 9, 1),
+        "list[current_player;main;0.375,9.05;9,1;]",
+        "listring[player:" .. target_player_name .. ";enderchest]",
+        "listring[current_player;main]",
+    }
+    return table.concat(formspec_ender_chest)
 end

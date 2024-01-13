@@ -12,14 +12,21 @@ minetest.register_privilege("invmanage", {
     description = "Allows viewing and manageing of the inventory of other players",
     give_to_singleplayer = false,
 })
-
--- Register the /inventory command
-minetest.register_chatcommand("invmanage", {
-    params = "<playername>",
+local inv_cmd_def = {
     description = "View the inventory of another player",
     privs = {invmanage = true},
     func = inventory_admin.command_inventory,
-})
+}
+
+if inventory_admin.utils.is_mineclone2() then
+  inv_cmd_def.params = "<type> <playername>"
+else
+  inv_cmd_def.params = "<playername>"
+end
+
+-- Register the /inventory command
+minetest.register_chatcommand("invmanage", inv_cmd_def)
+
 
 -- On join player setup detached inventory
 minetest.register_on_joinplayer(function(player)
