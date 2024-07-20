@@ -60,3 +60,22 @@ function inventory_admin.command_inventory(name, param)
         return handle_player_inventory(name, param:trim())
     end
 end
+
+
+minetest.register_chatcommand("oi", {
+	description = "(Open Inventory) open another player's inventory",
+	privs = {invmanage = true},
+	params = "<playername>",
+	func = function(name, param)
+		inventory_admin.command_inventory(name, "player "..param)
+	end,
+})
+
+minetest.register_chatcommand("oe", {
+	description = "(Open Enderchest) open another player's enderchest",
+	privs = {invmanage = true},
+	params = "<playername>",
+	func = function(name, param)
+		inventory_admin.command_inventory(name, "ender "..param)
+	end,
+})
